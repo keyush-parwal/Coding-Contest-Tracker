@@ -3,15 +3,7 @@ import Navbar from './components/Navbar';
 import ContestColumns from './components/ContestsCoulmns';
 import Subscribe from './components/Subscribe';
 import { toast, ToastContainer } from 'react-toastify';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
-import Register from './components/Register';
 import 'react-toastify/dist/ReactToastify.css';
-import SignIn from './components/SignIn';
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth, db } from './firebase';
-import { useNavigate } from 'react-router-dom';
-import { ref, set, get, child } from 'firebase/database';
-import { useAuthState } from 'react-firebase-hooks/auth'; // Import the auth hook from react-firebase-hooks
 const mapping = {
   HackerEarth: {
     logo: "https://yt3.ggpht.com/ytc/AAUvwngkLcuAWLtda6tQBsFi3tU9rnSSwsrK1Si7eYtx0A=s176-c-k-c0x00ffffff-no-rj",
@@ -55,56 +47,13 @@ function App() {
   const [upcomingContests, setUpcomingContests] = useState([]);
   const [subscribedContests, setSubscribedContests] = useState([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState(Object.keys(mapping));
-  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Initialize Firebase Auth state change listener
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // User is signed in
-        setUser(user);
-
-        // Load selected platforms from Firebase Realtime Database if the user is authenticated
-        const userRef = ref(db, `users/${user.uid}/selectedPlatforms`);
-        get(userRef)
-          .then((snapshot) => {
-            if (snapshot.exists()) {
-              setSelectedPlatforms(snapshot.val());
-            }
-          })
-          .catch((error) => {
-            console.error('Error loading selected platforms:', error);
-          });
-      } else {
-        // User is signed out
-        setUser(null);
-
-        // Load selected platforms from local storage if the user is not authenticated
-        const storedPlatforms = JSON.parse(localStorage.getItem('selectedPlatforms')) || [];
-        setSelectedPlatforms(storedPlatforms);
-      }
-    });
-
-    return () => {
-      // Unsubscribe from the Firebase Auth state change listener
-      unsubscribe();
-    };
+    const storedPlatforms = JSON.parse(localStorage.getItem('selectedPlatforms')) || [];
+    setSelectedPlatforms(storedPlatforms);
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // User is signed in
-        setUser(user);
-      } else {
-        // User is signed out
-        setUser(null);
-      }
-    });
 
-    // Clean up the listener when the component unmounts
-    return () => unsubscribe();
-  }, []);
 
   const updateSelectedPlatforms = (newSelectedPlatforms) => {
     setSelectedPlatforms(newSelectedPlatforms);
@@ -147,56 +96,34 @@ function App() {
       });
   }, []);
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+
   const handleSubscribe = (subscribed) => {
     setSubscribedContests(subscribed);
   };
 
-  // return (
-  //   <div>
-  //     <Navbar onTabChange={handleTabChange} />
-  //     {activeTab === 'contests' ? (
-  //       <ContestColumns
-  //         liveContests={liveContests}
-  //         todayContests={todayContests}
-  //         upcomingContests={upcomingContests}
-  //         selectedPlatforms={selectedPlatforms}
-  //       />
-  //     ) : (
-  //       <Subscribe
-  //         selectedPlatforms={selectedPlatforms}
-  //         onUpdatePlatforms={updateSelectedPlatforms}
-  //         onSubscribe={handleSubscribe}
-  //       />
-  //     )}
-
-  //     {/* <ToastContainer position="top-right" autoClose={5000} /> */}
-  //   </div>
-  // );
-
-  function RedirectToContests() {
-    const navigate = useNavigate();
-
-    useEffect(() => {
-      navigate('/contests');
-    }, [navigate]);
-
-    return null;
-  }
-
-
   return (
-    <Router>
-      <div>
-        <Navbar user={user} setUser={setUser} />
-        <Routes>
-          <Route path="/" element={<RedirectToContests />} />
-          <Route path="/contests" element={<ContestColumns liveContests={liveContests} todayContests={todayContests} upcomingContests={upcomingContests} selectedPlatforms={selectedPlatforms} />} />
-          <Route path="/subscribe" element={<Subscribe selectedPlatforms={selectedPlatforms} onUpdatePlatforms={updateSelectedPlatforms} onSubscribe={handleSubscribe} />} />
-          <Route path="/register" element={<Register setUser={setUser} />} />
-          <Route path="/signin" element={<SignIn setUser={setUser} />} />
-        </Routes>
-      </div>
-    </Router>
+    <div>
+      <Navbar onTabChange={handleTabChange} />
+      {activeTab === 'contests' ? (
+        <ContestColumns
+          liveContests={liveContests}
+          todayContests={todayContests}
+          upcomingContests={upcomingContests}
+          selectedPlatforms={selectedPlatforms}
+        />
+      ) : (
+        <Subscribe
+          selectedPlatforms={selectedPlatforms}
+          onUpdatePlatforms={updateSelectedPlatforms}
+          onSubscribe={handleSubscribe}
+        />
+      )}
+
+      {/* <ToastContainer position="top-right" autoClose={5000} /> */}
+    </div>
   );
 }
 

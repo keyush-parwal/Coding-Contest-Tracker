@@ -39,22 +39,22 @@ function ContestColumns({ liveContests, todayContests, upcomingContests, selecte
     const [activeView, setActiveView] = useState('today');
     const [notificationTime, setNotificationTime] = useState(10); // Default notification time is 10 minutes
 
-    // const isContestLive = (contest) => {
-    //     const currentTime = new Date().getTime();
-    //     const startTime = new Date(contest.start_time).getTime();
-    //     const endTime = new Date(contest.end_time).getTime();
-    //     return startTime <= currentTime && currentTime <= endTime;
-    // };
+    const isContestLive = (contest) => {
+        const currentTime = new Date().getTime();
+        const startTime = new Date(contest.start_time).getTime();
+        const endTime = new Date(contest.end_time).getTime();
+        return startTime <= currentTime && currentTime <= endTime;
+    };
 
     const filterContests = (contests) => {
         return contests.filter((contest) => selectedPlatforms.includes(contest.site));
     };
 
-    // const renderTimeBox = (time, isStart) => (
-    //     <div className={`rounded-md p-1 text-white ${isStart ? 'bg-green-500' : 'bg-blue-500'}`}>
-    //         {new Date(time).toLocaleTimeString('en-US', { hour12: false })}
-    //     </div>
-    // );
+    const renderTimeBox = (time, isStart) => (
+        <div className={`rounded-md p-1 text-white ${isStart ? 'bg-green-500' : 'bg-blue-500'}`}>
+            {new Date(time).toLocaleTimeString('en-US', { hour12: false })}
+        </div>
+    );
 
     const renderContestCard = (contest) => {
         const startDate = new Date(contest.start_time);
@@ -159,6 +159,8 @@ function ContestColumns({ liveContests, todayContests, upcomingContests, selecte
     };
 
 
+    const liveContestsList = liveContests.filter(isContestLive);
+
     const setNotification = (contest, minutesBefore) => {
         const startTime = new Date(contest.start_time).getTime();
         const notificationTime = startTime - minutesBefore * 60 * 1000; // Calculate the notification time
@@ -178,9 +180,9 @@ function ContestColumns({ liveContests, todayContests, upcomingContests, selecte
                 console.log("Notification created.");
                 // Show a toast notification
 
-                // toast.success('Notification alert created successfully', {
-                //     autoClose: 2000, // Close after 2 seconds
-                // });
+                toast.success('Notification alert created successfully', {
+                    autoClose: 2000, // Close after 2 seconds
+                });
             }, notificationTime - currentTime);
         } else {
             toast.error('This contest has already started', {
