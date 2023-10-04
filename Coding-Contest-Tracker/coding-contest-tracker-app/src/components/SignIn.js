@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth'
 
 function SignIn({ setUser }) {
     const [email, setEmail] = useState('');
@@ -13,13 +14,6 @@ function SignIn({ setUser }) {
 
         const auth = getAuth();
         signInWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-                // The user has been signed in
-                console.log('User signed in:', userCredential.user);
-                console.log('User signed in:', userCredential.user.displayName);
-                setUser(userCredential.user.displayName); // Set the user state
-                navigate('/contests'); // Redirect to /contests
-            })
             .catch((error) => {
                 console.error('Error signing in:', error);
             });
@@ -29,12 +23,6 @@ function SignIn({ setUser }) {
         const provider = new GoogleAuthProvider();
         const auth = getAuth();
         signInWithPopup(auth, provider)
-            .then((result) => {
-                // The user has been signed in with Google
-                console.log('User signed in with Google:', result.user);
-                setUser(result.user); // Set the user state
-                navigate('/contests'); // Redirect to /contests
-            })
             .catch((error) => {
                 if (error.code === 'auth/popup-closed-by-user') {
                     console.log('Sign-in popup was closed by the user.');
@@ -43,6 +31,23 @@ function SignIn({ setUser }) {
                 }
             });
     };
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // The user is signed in, update the state
+                setUser(user);
+                // Redirect to contests page
+                navigate('/contests');
+            } else {
+                // User is signed out, handle the state accordingly
+                setUser(null);
+            }
+        });
+
+        // Clean up the subscription on component unmount
+        return () => unsubscribe();
+    }, [setUser, navigate]);
 
 
     return (

@@ -1,41 +1,42 @@
 import React, { useState } from 'react';
-import { getAuth, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, GoogleAuthProvider, signInWithPopup, updateProfile } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
-
+import VerificationPending from './VerificationPending';
 function Register({ setUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [isEmailSent, setIsEmailSent] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    const auth = getAuth();
-    createUserWithEmailAndPassword(auth, email, password)
+    const authInstance = getAuth();
+    createUserWithEmailAndPassword(authInstance, email, password)
       .then((userCredential) => {
-        // The user has been registered and signed in
-        console.log('User registered:', userCredential.user);
         const user = userCredential.user;
-        updateProfile(user, {
-          displayName: name // Update the user's display name
-        })
+        // Send email verification
+        sendEmailVerification(user)
           .then(() => {
-            console.log('User display name updated:', user.displayName);
-            setUser(user); // Set the user state
-            // Redirect to /contests
+            setIsEmailSent(true); // Set email sent state to true
+            console.log('Email verification sent to:', user.email);
+            navigate(`/verification-pending/${user.email}`);
           })
           .catch((error) => {
-            console.error('Error updating user display name:', error);
+            console.error('Error sending email verification:', error);
           });
-        setUser(userCredential.user.displayName);
-        navigate('/contests');
+        // Update the user's display name
+        setUser(user);
       })
       .catch((error) => {
         console.error('Error registering user:', error);
       });
   };
+
+
+
 
   const handleGoogleSignUp = () => {
     const provider = new GoogleAuthProvider();
