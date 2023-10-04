@@ -3,7 +3,19 @@ import Navbar from './components/Navbar';
 import ContestColumns from './components/ContestsCoulmns';
 import Subscribe from './components/Subscribe';
 import { toast, ToastContainer } from 'react-toastify';
+import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import Register from './components/Register';
 import 'react-toastify/dist/ReactToastify.css';
+import SignIn from './components/SignIn';
+import { onAuthStateChanged } from 'firebase/auth'
+import { auth, db } from './firebase';
+import { useNavigate } from 'react-router-dom';
+import { ref, set, get, child, onValue } from 'firebase/database';
+import { useAuthState } from 'react-firebase-hooks/auth'; // Import the auth hook from react-firebase-hooks
+import StatsComponent from './components/Stats';
+import Account from './components/Account';
+import VerificationPending from './components/VerificationPending';
+
 const mapping = {
   HackerEarth: {
     logo: "https://yt3.ggpht.com/ytc/AAUvwngkLcuAWLtda6tQBsFi3tU9rnSSwsrK1Si7eYtx0A=s176-c-k-c0x00ffffff-no-rj",
@@ -47,10 +59,49 @@ function App() {
   const [upcomingContests, setUpcomingContests] = useState([]);
   const [subscribedContests, setSubscribedContests] = useState([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState(Object.keys(mapping));
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const storedPlatforms = JSON.parse(localStorage.getItem('selectedPlatforms')) || [];
-    setSelectedPlatforms(storedPlatforms);
+    // Initialize Firebase Auth state change listener
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // User is signed in
+        console.log("user", user);
+        setUser(user);
+        // Load selected platforms from Firebase Realtime Database if the user is authenticated
+        const userRef = ref(db, `users/${user.uid}/selectedPlatforms`);
+        get(userRef)
+          .then((snapshot) => {
+            if (snapshot.exists()) {
+              setSelectedPlatforms(snapshot.val());
+            }
+          })
+          .catch((error) => {
+            console.error('Error loading selected platforms:', error);
+          });
+
+        // Load usernames from Firebase Realtime Database
+        const usersRef = ref(db, `users/${user.uid}`);
+        onValue(usersRef, (snapshot) => {
+          const data = snapshot.val();
+          if (data) {
+            setGeeksforGeeksUsername(data.geeksforGeeksUsername || '');
+            setLeetCodeUsername(data.leetCodeUsername || '');
+          }
+        });
+      } else {
+        // User is signed out
+        setUser(null);
+        // Load selected platforms from local storage if the user is not authenticated
+        const storedPlatforms = JSON.parse(localStorage.getItem('selectedPlatforms')) || [];
+        setSelectedPlatforms(storedPlatforms);
+      }
+    });
+
+    return () => {
+      // Unsubscribe from the Firebase Auth state change listener
+      unsubscribe();
+    };
   }, []);
 
 
@@ -96,34 +147,66 @@ function App() {
       });
   }, []);
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-  };
-
   const handleSubscribe = (subscribed) => {
     setSubscribedContests(subscribed);
   };
 
-  return (
-    <div>
-      <Navbar onTabChange={handleTabChange} />
-      {activeTab === 'contests' ? (
-        <ContestColumns
-          liveContests={liveContests}
-          todayContests={todayContests}
-          upcomingContests={upcomingContests}
-          selectedPlatforms={selectedPlatforms}
-        />
-      ) : (
-        <Subscribe
-          selectedPlatforms={selectedPlatforms}
-          onUpdatePlatforms={updateSelectedPlatforms}
-          onSubscribe={handleSubscribe}
-        />
-      )}
+  // return (
+  //   <div>
+  //     <Navbar onTabChange={handleTabChange} />
+  //     {activeTab === 'contests' ? (
+  //       <ContestColumns
+  //         liveContests={liveContests}
+  //         todayContests={todayContests}
+  //         upcomingContests={upcomingContests}
+  //         selectedPlatforms={selectedPlatforms}
+  //       />
+  //     ) : (
+  //       <Subscribe
+  //         selectedPlatforms={selectedPlatforms}
+  //         onUpdatePlatforms={updateSelectedPlatforms}
+  //         onSubscribe={handleSubscribe}
+  //       />
+  //     )}
 
-      {/* <ToastContainer position="top-right" autoClose={5000} /> */}
-    </div>
+  //     {/* <ToastContainer position="top-right" autoClose={5000} /> */}
+  //   </div>
+  // );
+
+  function RedirectToContests() {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+      navigate('/contests');
+    }, [navigate]);
+
+    return null;
+  }
+  const [geeksforGeeksUsername, setGeeksforGeeksUsername] = useState('');
+  const [leetCodeUsername, setLeetCodeUsername] = useState('');
+
+  const handleUsernamesUpdate = (geeksforGeeksUsername, newLeetCodeUsername) => {
+    setGeeksforGeeksUsername(geeksforGeeksUsername);
+    setLeetCodeUsername(newLeetCodeUsername);
+  };
+
+
+  return (
+    <Router>
+      <div>
+        <Navbar user={user} setUser={setUser} />
+        <Routes>
+          <Route path="/" element={<RedirectToContests />} />
+          <Route path="/contests" element={<ContestColumns liveContests={liveContests} todayContests={todayContests} upcomingContests={upcomingContests} selectedPlatforms={selectedPlatforms} />} />
+          <Route path="/subscribe" element={<Subscribe selectedPlatforms={selectedPlatforms} onUpdatePlatforms={updateSelectedPlatforms} onSubscribe={handleSubscribe} />} />
+          <Route path="/register" element={<Register setUser={setUser} />} />
+          <Route path="/signin" element={<SignIn setUser={setUser} />} />
+          <Route path="/stats" element={<StatsComponent user={user} leetCodeUsername={leetCodeUsername} />} />
+          <Route path="/account" element={<Account user={user} onUsernamesUpdate={handleUsernamesUpdate} />} />
+          <Route path="/verification-pending/:email" element={<VerificationPending />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

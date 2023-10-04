@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { gapi } from 'gapi-script';
+// import Popup from 'reactjs-popup/dist/index.css';
+
 const mapping = {
     HackerEarth: {
         logo: "https://yt3.ggpht.com/ytc/AAUvwngkLcuAWLtda6tQBsFi3tU9rnSSwsrK1Si7eYtx0A=s176-c-k-c0x00ffffff-no-rj",
@@ -35,26 +38,72 @@ const mapping = {
         color: "#1BA94C",
     },
 };
-function ContestColumns({ liveContests, todayContests, upcomingContests, selectedPlatforms }) {
-    const [activeView, setActiveView] = useState('today');
-    const [notificationTime, setNotificationTime] = useState(10); // Default notification time is 10 minutes
 
-    const isContestLive = (contest) => {
-        const currentTime = new Date().getTime();
-        const startTime = new Date(contest.start_time).getTime();
-        const endTime = new Date(contest.end_time).getTime();
-        return startTime <= currentTime && currentTime <= endTime;
+// const GOOGLE_CLIENT_ID = ''
+// const GOOGLE_CLIENT_SECRET = ''
+
+
+function ContestColumns({ liveContests, todayContests, upcomingContests, selectedPlatforms }) {
+    const [activeView, setActiveView] = useState('live');
+    const [notificationTime, setNotificationTime] = useState(10); // Default notification time is 10 minutes
+    const [signedIn, setSignedIn] = useState(false);
+
+    // const isContestLive = (contest) => {
+    //     const currentTime = new Date().getTime();
+    //     const startTime = new Date(contest.start_time).getTime();
+    //     const endTime = new Date(contest.end_time).getTime();
+    //     return startTime <= currentTime && currentTime <= endTime;
+    // };
+
+    useEffect(() => {
+        gapi.load("client:auth2", () => {
+            gapi.auth2.init({
+                clientId: '640752169023-hmmhli2djvmassgi5b2p4o4bvds9b7k5.apps.googleusercontent.com',
+                scpe: 'https://www.googleapis.com/auth/calendar',
+            });
+
+
+            gapi.auth2.getAuthInstance().isSignedIn.listen(handleAuthChange);
+            handleAuthChange(gapi.auth2.getAuthInstance().isSignedIn.get());
+        });
+
+    }, []);
+
+    const handleAuthChange = (isSignedIn) => {
+        if (isSignedIn) {
+            setSignedIn(true);
+            console.log("User is signed in");
+        } else {
+            // User is not signed in, you can prompt them to sign in
+            setSignedIn(false);
+            console.log("User is not signed in");
+        }
+    };
+
+    const signIn = async () => {
+        try {
+            await gapi.auth2.getAuthInstance().signIn();
+            console.log('Sign-in successful');
+            // Additional code to execute upon successful sign-in.
+        } catch (error) {
+            console.error('Sign-in error:', error);
+        }
+        // gapi.auth2.getAuthInstance().signIn();
+    };
+
+    const signOut = () => {
+        gapi.auth2.getAuthInstance().signOut();
     };
 
     const filterContests = (contests) => {
         return contests.filter((contest) => selectedPlatforms.includes(contest.site));
     };
 
-    const renderTimeBox = (time, isStart) => (
-        <div className={`rounded-md p-1 text-white ${isStart ? 'bg-green-500' : 'bg-blue-500'}`}>
-            {new Date(time).toLocaleTimeString('en-US', { hour12: false })}
-        </div>
-    );
+    // const renderTimeBox = (time, isStart) => (
+    //     <div className={`rounded-md p-1 text-white ${isStart ? 'bg-green-500' : 'bg-blue-500'}`}>
+    //         {new Date(time).toLocaleTimeString('en-US', { hour12: false })}
+    //     </div>
+    // );
 
     const renderContestCard = (contest) => {
         const startDate = new Date(contest.start_time);
@@ -85,6 +134,47 @@ function ContestColumns({ liveContests, todayContests, upcomingContests, selecte
         if (!selectedPlatforms.includes(contest.site)) {
             // Skip rendering if the platform is not selected
             return null;
+        }
+
+        const addToCalendar = () => {
+            const start = (contest.start_time.slice(0, 19)).replace(" ", "T");
+            const end = (contest.end_time.slice(0, 19)).replace(" ", "T");
+
+            const event = {
+                summary: contest.name,
+                description: contest.site,
+                start: {
+                    dateTime: start,
+                    timeZone: 'Asia/Kolkata', // Set the time zone to Indian Standard Time (IST)
+                },
+                end: {
+                    dateTime: end,
+                    timeZone: 'Asia/Kolkata', // Set the time zone to Indian Standard Time (IST)
+                },
+            };
+            console.log("No Problem till here");
+
+            if (gapi.auth2 && gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                // Initialize the Calendar API
+                gapi.client.load('calendar', 'v3', () => {
+                    // Now you can use the calendar API to insert an event
+                    gapi.client.calendar.events
+                        .insert({
+                            calendarId: 'primary', // You can change this to the desired calendar ID
+                            resource: event,
+                        })
+                        .then((response) => {
+                            console.log('Event created:', response);
+                        })
+                        .catch((error) => {
+                            console.error('Error creating event:', error);
+                        });
+                });
+            } else {
+                // Handle the case when the user is not signed in or the API client is not loaded
+                console.error('User is not signed in or API client is not loaded');
+            }
+
         }
 
         return (
@@ -151,6 +241,21 @@ function ContestColumns({ liveContests, todayContests, upcomingContests, selecte
                             >
                                 Set Notification
                             </button>
+                            {/* <Popup trigger=
+                                {<button> Click to open popup </button>}
+                                position="right center">
+                                <div>GeeksforGeeks</div>
+                                <button>Click here</button>
+                            </Popup> */}
+                            {
+                                signedIn && <button className="ml-4 bg-green-500 text-white px-2 py-1 rounded hover:bg-blue-600" onClick={addToCalendar}>
+                                    Add to Calendar
+                                </button>
+                            }
+                            {
+                                !signedIn && <button className="ml-4 bg-green-500 text-white px-2 py-1 rounded hover:bg-blue-600" onClick={signIn}>Add to Calendar</button>
+                            }
+
                         </div>
                     </div>
                 </div>
@@ -158,8 +263,6 @@ function ContestColumns({ liveContests, todayContests, upcomingContests, selecte
         );
     };
 
-
-    const liveContestsList = liveContests.filter(isContestLive);
 
     const setNotification = (contest, minutesBefore) => {
         const startTime = new Date(contest.start_time).getTime();
@@ -180,9 +283,9 @@ function ContestColumns({ liveContests, todayContests, upcomingContests, selecte
                 console.log("Notification created.");
                 // Show a toast notification
 
-                toast.success('Notification alert created successfully', {
-                    autoClose: 2000, // Close after 2 seconds
-                });
+                // toast.success('Notification alert created successfully', {
+                //     autoClose: 2000, // Close after 2 seconds
+                // });
             }, notificationTime - currentTime);
         } else {
             toast.error('This contest has already started', {
@@ -191,6 +294,56 @@ function ContestColumns({ liveContests, todayContests, upcomingContests, selecte
 
         }
     };
+
+    // const responseGoogle = (response) => {
+    //     console.log("You are successful");
+    //     console.log(response);
+    //     const { code } = response
+    // }
+
+    // const responseError = (error) => {
+    //     console.log("Here is an error");
+    //     console.log(error)
+    // }
+
+    // const createEvent = () => {
+    //     const event = {
+    //         summary: 'Event Name',
+    //         description: 'Event Description',
+    //         start: {
+    //             dateTime: '2023-01-01T10:00:00',
+    //             timeZone: 'Asia/Kolkata', // Set the time zone to Indian Standard Time (IST)
+    //         },
+    //         end: {
+    //             dateTime: '2023-01-01T12:00:00',
+    //             timeZone: 'Asia/Kolkata', // Set the time zone to Indian Standard Time (IST)
+    //         },
+    //     };
+    //     console.log("No Problem till here");
+
+    //     if (gapi.auth2 && gapi.auth2.getAuthInstance().isSignedIn.get()) {
+    //         // Initialize the Calendar API
+    //         gapi.client.load('calendar', 'v3', () => {
+    //             // Now you can use the calendar API to insert an event
+    //             gapi.client.calendar.events
+    //                 .insert({
+    //                     calendarId: 'primary', // You can change this to the desired calendar ID
+    //                     resource: event,
+    //                 })
+    //                 .then((response) => {
+    //                     console.log('Event created:', response);
+    //                 })
+    //                 .catch((error) => {
+    //                     console.error('Error creating event:', error);
+    //                 });
+    //         });
+    //     } else {
+    //         // Handle the case when the user is not signed in or the API client is not loaded
+    //         console.error('User is not signed in or API client is not loaded');
+    //     }
+    // };
+
+
 
     return (
         <div>
@@ -217,12 +370,29 @@ function ContestColumns({ liveContests, todayContests, upcomingContests, selecte
                     Upcoming Contests
                 </button>
             </div>
+            <div>
+                {/* <GoogleLogin
+                    clientId='640752169023-hmmhli2djvmassgi5b2p4o4bvds9b7k5.apps.googleusercontent.com'
+                    buttonText='Authorize Calender'
+                    onSuccess={responseGoogle}
+                    onFailure={responseError}
+                    cookiePolicy={'single_host_origin'}
+                    responseType='code'
+                    accessType='offline'
+                    scope='openid email profile https://www.googleapis.com/auth/calendar'
+                /> */}
+
+
+
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-4 p-2">
                 {activeView === 'today' && filterContests(todayContests).map((contest) => renderContestCard(contest))}
                 {activeView === 'live' && filterContests(liveContests).map((contest) => renderContestCard(contest))}
                 {activeView === 'upcoming' && filterContests(upcomingContests).map((contest) => renderContestCard(contest))}
             </div>
             <ToastContainer position="top-right" autoClose={5000} />
+
+
         </div>
     );
 }
