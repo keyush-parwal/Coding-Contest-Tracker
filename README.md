@@ -1,4 +1,6 @@
 # Coding-Contest-Tracker
+[Download On Chrome](https://chrome.google.com/webstore/detail/coding-contest-tracker/ppfpjgjcobidenjopdjkbgicnklhdhgc)
+</br>
 A browser extension to track upcoming coding contests
 Welcome to Coding Contest Tracker, the ultimate coding companion designed with students in mind! 🚀
 
