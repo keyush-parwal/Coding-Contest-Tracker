@@ -26,7 +26,7 @@ const StatsComponent = ({ user, leetCodeUsername }) => {
 
     return (
         <div className="bg-gray-100 p-4 rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-4">Stats</h2>
+
             {/* Render the external URL below the progress bar */}
             <div className="mt-4">
                 <iframe

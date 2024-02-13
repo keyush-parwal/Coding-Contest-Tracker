@@ -45,19 +45,7 @@ const Account = ({ user, onUsernamesUpdate }) => {
     return (
         <div className="bg-gray-100 p-4 rounded-lg shadow-md">
             <h2 className="text-2xl font-bold mb-4">Account Page</h2>
-            <div className="mb-4">
-                <label htmlFor="geeksforGeeksUsername" className="block text-lg font-semibold mb-2">
-                    GeeksforGeeks Username
-                </label>
-                <input
-                    type="text"
-                    id="geeksforGeeksUsername"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={geeksforGeeksUsername}
-                    onChange={(e) => setGeeksforGeeksUsername(e.target.value)}
-                    disabled={!isEditing}
-                />
-            </div>
+
             <div className="mb-4">
                 <label htmlFor="leetCodeUsername" className="block text-lg font-semibold mb-2">
                     LeetCode Username

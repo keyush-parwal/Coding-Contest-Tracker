@@ -2,57 +2,70 @@ import React, { useEffect, useState } from 'react';
 import Navbar from './components/Navbar';
 import ContestColumns from './components/ContestsCoulmns';
 import Subscribe from './components/Subscribe';
-import { toast, ToastContainer } from 'react-toastify';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Register from './components/Register';
 import 'react-toastify/dist/ReactToastify.css';
 import SignIn from './components/SignIn';
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, db } from './firebase';
 import { useNavigate } from 'react-router-dom';
-import { ref, set, get, child, onValue } from 'firebase/database';
-import { useAuthState } from 'react-firebase-hooks/auth'; // Import the auth hook from react-firebase-hooks
+import { ref, get, onValue } from 'firebase/database';
+// import { useAuthState } from 'react-firebase-hooks/auth'; // Import the auth hook from react-firebase-hooks
 import StatsComponent from './components/Stats';
 import Account from './components/Account';
 import VerificationPending from './components/VerificationPending';
 
 const mapping = {
-  HackerEarth: {
+  hackerearth: {
     logo: "https://yt3.ggpht.com/ytc/AAUvwngkLcuAWLtda6tQBsFi3tU9rnSSwsrK1Si7eYtx0A=s176-c-k-c0x00ffffff-no-rj",
     color: "#323754",
   },
-  AtCoder: {
+  atcoder: {
     logo: "https://avatars.githubusercontent.com/u/7151918?s=200&v=4",
     color: "#222222",
   },
-  CodeChef: {
+  codechef: {
     logo: "https://i.pinimg.com/originals/c5/d9/fc/c5d9fc1e18bcf039f464c2ab6cfb3eb6.jpg",
     color: "#D0C3AD",
   },
-  LeetCode: {
+  leetcode: {
     logo: "https://upload.wikimedia.org/wikipedia/commons/1/19/LeetCode_logo_black.png",
     color: "#FFA20E",
   },
-  GeeksforGeeks: {
+  geeksforgeeks: {
     logo: "https://media.geeksforgeeks.org/wp-content/cdn-uploads/20190710102234/download3.png",
     color: "#34A853",
   },
-  CodeForces: {
+  codeforces: {
     logo: "https://i.pinimg.com/736x/b4/6e/54/b46e546a3ee4d410f961e81d4a8cae0f.jpg",
     color: "#3B5998",
   },
-  TopCoder: {
+  topcoder: {
     logo: "https://images.ctfassets.net/b5f1djy59z3a/3MB1wM9Xuwca88AswIUwsK/dad472153bcb5f75ea1f3a193f25eee2/Topcoder_Logo_200px.png",
     color: "#F69322",
   },
-  HackerRank: {
+  hackerrank: {
     logo: "https://upload.wikimedia.org/wikipedia/commons/4/40/HackerRank_Icon-1000px.png",
     color: "#1BA94C",
   },
+  cups: {
+    logo: "https://clist.by/media/sizes/64x64/img/resources/codingcontest_org.png",
+    // yellow color
+    color: "#FFD700",
+  },
+  lightoj: {
+    logo: "https://clist.by/media/sizes/64x64/img/resources/lightoj_com.png",
+    // blue color
+    color: "#0000FF",
+  },
+  kaggle: {
+    logo: "https://clist.by/media/sizes/64x64/img/resources/kaggle_com.png",
+    color: "#0000FF"
+  }
 };
 
+
 function App() {
-  const [activeTab, setActiveTab] = useState('contests');
   const [contests, setContests] = useState([]);
   const [liveContests, setLiveContests] = useState([]);
   const [todayContests, setTodayContests] = useState([]);
@@ -66,7 +79,7 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         // User is signed in
-        console.log("user", user);
+        // console.log("user", user);
         setUser(user);
         // Load selected platforms from Firebase Realtime Database if the user is authenticated
         const userRef = ref(db, `users/${user.uid}/selectedPlatforms`);
@@ -112,40 +125,53 @@ function App() {
   };
 
   useEffect(() => {
-    const storedPlatforms = JSON.parse(localStorage.getItem('selectedPlatforms')) || [];
-    setSelectedPlatforms(storedPlatforms);
-  }, []);
-
-  useEffect(() => {
-    fetch('https://kontests.net/api/v1/all')
+    // Fetch contests from the new API
+    fetch('https://coding-contest-tracker-f2t9dpkiw-akshat202002.vercel.app/clist-proxy')
       .then((response) => response.json())
       .then((data) => {
+        console.log("data", data);
         const currentDate = new Date();
         const live = [];
         const today = [];
         const upcoming = [];
 
-        data.forEach((contest) => {
-          const startTime = new Date(contest.start_time);
-          if (startTime <= currentDate) {
-            live.push(contest);
-          } else if (
-            startTime.getDate() === currentDate.getDate() &&
-            startTime.getMonth() === currentDate.getMonth() &&
-            startTime.getFullYear() === currentDate.getFullYear()
-          ) {
-            today.push(contest);
-          } else {
-            upcoming.push(contest);
-          }
-        });
+        if (Array.isArray(data.objects)) {
+          data.objects.forEach((contest) => {
+            const startTime = new Date(contest.start);
+            const endTime = new Date(contest.end);
+
+            // Check if the contest is live
+            if (startTime <= currentDate && endTime > currentDate) {
+              live.push(contest);
+            } else if (
+              startTime.getDate() === currentDate.getDate() &&
+              startTime.getMonth() === currentDate.getMonth() &&
+              startTime.getFullYear() === currentDate.getFullYear()
+            ) {
+              today.push(contest);
+            } else if (startTime > currentDate) {
+              upcoming.push(contest);
+            }
+          });
+        } else {
+          console.error('Invalid data format from clist.by API');
+        }
 
         setLiveContests(live);
         setTodayContests(today);
         setUpcomingContests(upcoming);
-        setContests(data);
+        setContests(data.objects);
+        console.log("live", live);
+        console.log("today", today);
+        console.log("upcoming", upcoming);
+        console.log("data.objects", data.objects);
+      })
+      .catch((error) => {
+        console.error('Error fetching contests:', error);
       });
   }, []);
+
+
 
   const handleSubscribe = (subscribed) => {
     setSubscribedContests(subscribed);

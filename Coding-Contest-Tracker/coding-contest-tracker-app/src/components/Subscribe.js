@@ -1,41 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { ref, set, get, child } from 'firebase/database';
 import { useAuthState } from 'react-firebase-hooks/auth'; // Import the auth hook from react-firebase-hooks
 import { auth, db } from '../firebase';
 const mapping = {
-    HackerEarth: {
+    hackerearth: {
         logo: "https://yt3.ggpht.com/ytc/AAUvwngkLcuAWLtda6tQBsFi3tU9rnSSwsrK1Si7eYtx0A=s176-c-k-c0x00ffffff-no-rj",
         color: "#323754",
     },
-    AtCoder: {
+    atcoder: {
         logo: "https://avatars.githubusercontent.com/u/7151918?s=200&v=4",
         color: "#222222",
     },
-    CodeChef: {
+    codechef: {
         logo: "https://i.pinimg.com/originals/c5/d9/fc/c5d9fc1e18bcf039f464c2ab6cfb3eb6.jpg",
         color: "#D0C3AD",
     },
-    LeetCode: {
+    leetcode: {
         logo: "https://upload.wikimedia.org/wikipedia/commons/1/19/LeetCode_logo_black.png",
         color: "#FFA20E",
     },
-    GeeksforGeeks: {
+    geeksforgeeks: {
         logo: "https://media.geeksforgeeks.org/wp-content/cdn-uploads/20190710102234/download3.png",
         color: "#34A853",
     },
-    CodeForces: {
+    codeforces: {
         logo: "https://i.pinimg.com/736x/b4/6e/54/b46e546a3ee4d410f961e81d4a8cae0f.jpg",
         color: "#3B5998",
     },
-    TopCoder: {
+    topcoder: {
         logo: "https://images.ctfassets.net/b5f1djy59z3a/3MB1wM9Xuwca88AswIUwsK/dad472153bcb5f75ea1f3a193f25eee2/Topcoder_Logo_200px.png",
         color: "#F69322",
     },
-    HackerRank: {
+    hackerrank: {
         logo: "https://upload.wikimedia.org/wikipedia/commons/4/40/HackerRank_Icon-1000px.png",
         color: "#1BA94C",
     },
+    cups: {
+        logo: "https://clist.by/media/sizes/64x64/img/resources/codingcontest_org.png",
+        // yellow color
+        color: "#FFD700",
+    },
+    lightoj: {
+        logo: "https://clist.by/media/sizes/64x64/img/resources/lightoj_com.png",
+        // blue color
+        color: "#0000FF",
+    },
+    kaggle: {
+        logo: "https://clist.by/media/sizes/64x64/img/resources/kaggle_com.png",
+        color: "#0000FF"
+    }
 };
+
 
 
 function Subscribe({ selectedPlatforms, onUpdatePlatforms, onSubscribe }) {
@@ -80,30 +95,34 @@ function Subscribe({ selectedPlatforms, onUpdatePlatforms, onSubscribe }) {
         <div className="p-4">
             <h2 className="text-lg font-semibold">Subscribe to Coding Platforms</h2>
             <div className="mt-4">
-                {Object.keys(mapping).map((platform) => (
-                    <div key={platform} className="flex items-center space-x-4 mb-2">
-                        <div className="flex items-center flex-grow">
-                            <img
-                                src={mapping[platform].logo}
-                                alt={platform}
-                                style={{
-                                    width: 50,
-                                    height: 50,
-                                    borderRadius: 2,
-                                    cursor: "default",
-                                }}
-                            />
-                            <span className="ml-4">{platform}</span>
+                {Object.keys(mapping).map((platform) => {
+                    const capitalizedPlatform = platform.charAt(0).toUpperCase() + platform.slice(1);
+
+                    return (
+                        <div key={platform} className="flex items-center space-x-4 mb-2">
+                            <div className="flex items-center flex-grow">
+                                <img
+                                    src={mapping[platform].logo}
+                                    alt={platform}
+                                    style={{
+                                        width: 50,
+                                        height: 50,
+                                        borderRadius: 2,
+                                        cursor: "default",
+                                    }}
+                                />
+                                <span className="ml-4">{capitalizedPlatform}</span>
+                            </div>
+                            <div>
+                                <input
+                                    type="checkbox"
+                                    checked={selectedPlatforms.includes(platform)}
+                                    onChange={() => handleSubscription(platform)}
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <input
-                                type="checkbox"
-                                checked={selectedPlatforms.includes(platform)}
-                                onChange={() => handleSubscription(platform)}
-                            />
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );

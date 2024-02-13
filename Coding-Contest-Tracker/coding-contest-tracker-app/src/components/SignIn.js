@@ -19,19 +19,6 @@ function SignIn({ setUser }) {
             });
     };
 
-    const handleGoogleSignIn = () => {
-        const provider = new GoogleAuthProvider();
-        const auth = getAuth();
-        signInWithPopup(auth, provider)
-            .catch((error) => {
-                if (error.code === 'auth/popup-closed-by-user') {
-                    console.log('Sign-in popup was closed by the user.');
-                } else {
-                    console.error('Error signing in with Google:', error);
-                }
-            });
-    };
-
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -67,9 +54,6 @@ function SignIn({ setUser }) {
                 </div>
                 <button type="submit" className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                     Sign In
-                </button>
-                <button type="button" onClick={handleGoogleSignIn} className="mt-4 w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    Sign In with Google
                 </button>
             </form>
         </div>
